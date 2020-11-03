@@ -1,2 +1,3 @@
 # SurgVisDom_Challenge
-Surgical Visual Domain Adaptation 2020
+
+* Surgical Visual Domain Adaptation 2020
