@@ -51,6 +51,7 @@ class SurgVisDataset(Dataset):
 
     def __getitem__(self, index):
         #load data at idx: index
+        index = index % len(self.X)
         frame_idx = np.random.randint(0, len(self.X[index]))
 
         if self.verbose:
@@ -64,7 +65,13 @@ class SurgVisDataset(Dataset):
         return X, y
 
     def __len__(self):
-        return len(self.X)
+        if hasattr(self, 'length'):
+          return self.length
+        sum = 0
+        for x in self.X:
+          sum += len(x)
+        self.length = sum
+        return self.length
 
 import matplotlib.pyplot as plt
 
@@ -72,8 +79,10 @@ PATH = 'C:\\Users\\gbour\\Desktop\\sysvision\\train_1'
 PATH_PORCINE_1 = os.path.join(PATH, 'Porcine')
 
 CROP_SIZE = (420, 630)
+INPUT_SHAPE = (256, 256)
 
 train_transform = transforms.Compose([transforms.CenterCrop(CROP_SIZE),
+                                        transforms.Resize(INPUT_SHAPE),
                                         transforms.ToTensor()])
 
 dataset = SurgVisDataset(PATH_PORCINE_1, transform=train_transform, verbose=False)
