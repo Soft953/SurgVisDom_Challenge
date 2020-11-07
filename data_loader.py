@@ -3,7 +3,7 @@ import glob
 import numpy as np
 import cv2
 from PIL import Image
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import transforms
 
 
@@ -51,14 +51,14 @@ class SurgVisDataset(Dataset):
 
     def __getitem__(self, index):
         #load data at idx: index
-        index = index % len(self.X)
-        frame_idx = np.random.randint(0, len(self.X[index]))
+        index_1 = index % len(self.X)
+        frame_idx = np.random.randint(0, len(self.X[index_1]))
 
         if self.verbose:
-            print(index, frame_idx)
+            print(index, index_1, frame_idx)
         
-        X = self.img_loader(self.X[index][frame_idx])
-        y = self.y[index]
+        X = self.img_loader(self.X[index_1][frame_idx])
+        y = self.y[index_1]
 
         #preprocess frame
         X = self._preprocess_frame(X)
@@ -85,15 +85,31 @@ train_transform = transforms.Compose([transforms.CenterCrop(CROP_SIZE),
                                         transforms.Resize(INPUT_SHAPE),
                                         transforms.ToTensor()])
 
-dataset = SurgVisDataset(PATH_PORCINE_1, transform=train_transform, verbose=False)
+dataset = SurgVisDataset(PATH_PORCINE_1, transform=train_transform, verbose=True)
 #img, y = dataset.__getitem__(0)
-
 trans = transforms.ToPILImage()
 trans1 = transforms.ToTensor()
 
+n = len(dataset)
+n_train = int(n * 0.9)
+n_val = int(n * 0.1)
+print("dataset len:", n)
+
+
+train_set, val_set, test_set = random_split(dataset, (n_train, n_val, 0))
+
+print("Train set:", len(train_set))
+print("Val set:", len(val_set))
+print("Test set", len(test_set))
+
+
+import pdb; pdb.set_trace()
+
+
 dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 images, labels = next(iter(dataloader))
-
+"""
 plt.figure()
 plt.imshow(trans(images[0]))
 plt.show()
+"""
