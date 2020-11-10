@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import cv2
 
 def _extract_imgs_from_videos(vid_path):
@@ -22,9 +23,8 @@ def _extract_imgs_from_videos(vid_path):
         i += 1
         #cv2.resize(frame[60:490, 165:795], (256, 256))))
 
-def _load_data_per_classes():
-    PATH = 'C:\\Users\\gbour\\Desktop\\sysvision\\train_1'
-    PATH_PORCINE_1 = os.path.join(PATH, 'Porcine')
+def _load_data_per_classes(path):
+    PATH_PORCINE_1 = os.path.join(path, 'Porcine')
     path = PATH_PORCINE_1
     for key, value in {'Dissection': 0, 'Knot_Tying': 1, 'Needle_Driving': 2}.items():
         class_dir = os.path.join(path, key)
@@ -34,5 +34,15 @@ def _load_data_per_classes():
         for f in files_path:
             _extract_imgs_from_videos(f)
 
-_load_data_per_classes()
+if __name__ == '__main__':
+    # PATH = 'C:\\Users\\gbour\\Desktop\\sysvision\\train_1'
+    PATH = Path('C:\\Users\\gbour\\Desktop\\sysvision\\test')
+    if PATH.name == "test":
+        for vid_path in PATH.iterdir():
+            #vid_name = vid_path.name.split('.')[0]
+            #PATH.joinpath(vid_name).mkdir()
+            #print(PATH.joinpath(vid_name))
+            _extract_imgs_from_videos(str(vid_path))
+    else:
+        _load_data_per_classes(PATH)
 
