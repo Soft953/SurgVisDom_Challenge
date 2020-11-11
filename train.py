@@ -72,6 +72,8 @@ def train(trainloader, val_loader, model, dev, config):
 
         # Validation step
         model.eval()
+        start = time.time()
+
         with torch.no_grad():
             for i, data in enumerate(val_loader, 0):
                 # get the inputs; data is a list of [inputs, labels]
