@@ -144,7 +144,7 @@ train_transform = transforms.Compose([transforms.CenterCrop(CROP_SIZE),
                                         transforms.Resize(INPUT_SHAPE),
                                         transforms.ToTensor()])
 
-dataset = SurgVisDataset(PATH_PORCINE_1, transform=train_transform, verbose=True)
+dataset = SurgVisDataset(PATH_PORCINE_1, transform=train_transform, verbose=False)
 #img, y = dataset.__getitem__(0)
 trans = transforms.ToPILImage()
 trans1 = transforms.ToTensor()
@@ -169,11 +169,31 @@ print("Test set", len(test_set))
 
 #import pdb; pdb.set_trace()
 
+"""
 
-dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+import time
+
+dataloader = DataLoader(val_set, batch_size=32, shuffle=True)
+
+start = time.time()
+for i, data in enumerate(dataloader, 0):
+    print(i)
+    inputs, labels = data
+end = time.time()
+print("time elapsed (in sec):", end - start)
+
+
+dataloader = DataLoader(val_set, batch_size=32, shuffle=True, num_workers=8)
+
+start = time.time()
+for i, data in enumerate(dataloader, 0):
+    print(i)
+    inputs, labels = data
+end = time.time()
+print("time elapsed (in sec):", end - start)
+
+
+
+
 images, labels = next(iter(dataloader))
-
-
-plt.figure()
-plt.imshow(trans(images[0]))
-plt.show()
+"""
