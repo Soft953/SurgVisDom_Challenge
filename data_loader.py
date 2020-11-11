@@ -28,7 +28,7 @@ class SurgVisDataset(Dataset):
 
         if self.verbose:
             print(self.classes)
-            print(len(self.X), self.y)
+            print(len(self.X), len(self.y))
 
     def _get_classes(self):
         # search for subdirectories
@@ -43,8 +43,8 @@ class SurgVisDataset(Dataset):
             extracted_imgs_folder = next(os.walk(class_dir))[1]
             for extracted_folder in extracted_imgs_folder:
                 files_path = [os.path.join(class_dir, extracted_folder, x) for x in os.listdir(os.path.join(class_dir, extracted_folder))]
-                X.append(files_path)
-                y.append(value)
+                X += files_path
+                y += [value] * len(files_path)
         return X, y
 
     def _preprocess_frame(self, img):
@@ -53,26 +53,19 @@ class SurgVisDataset(Dataset):
 
     def __getitem__(self, index):
         #load data at idx: index
-        index_1 = index % len(self.X)
-        frame_idx = np.random.randint(0, len(self.X[index_1]))
-
         if self.verbose:
-            print(index, index_1, frame_idx)
+            print(index)
         
-        X = self.img_loader(self.X[index_1][frame_idx])
-        y = self.y[index_1]
+        X = self.img_loader(self.X[index])
+        y = self.y[index]
 
         #preprocess frame
         X = self._preprocess_frame(X)
         return X, y
 
     def __len__(self):
-        if hasattr(self, 'length'):
-          return self.length
-        sum = 0
-        for x in self.X:
-          sum += len(x)
-        self.length = sum
+        if not hasattr(self, 'length'):
+            self.length = len(self.y)
         return self.length
 
 
@@ -128,7 +121,7 @@ class SurgVisTestset:
 
 CROP_SIZE = (420, 630)
 INPUT_SHAPE = (256, 256)
-
+"""
 train_transform = transforms.Compose([transforms.ToPILImage(),
                                         transforms.CenterCrop(CROP_SIZE),
                                         transforms.Resize(INPUT_SHAPE),
@@ -139,7 +132,7 @@ test_set = SurgVisTestset(path=Path('C:\\Users\\gbour\\Desktop\\sysvision\\test'
 batches = test_set.get_batches(0, list(range(32)))
 print(batches.shape)
 
-
+"""
 import matplotlib.pyplot as plt
 
 PATH = 'C:\\Users\\gbour\\Desktop\\sysvision\\train_1'
@@ -152,7 +145,6 @@ train_transform = transforms.Compose([transforms.CenterCrop(CROP_SIZE),
                                         transforms.ToTensor()])
 
 dataset = SurgVisDataset(PATH_PORCINE_1, transform=train_transform, verbose=True)
-"""
 #img, y = dataset.__getitem__(0)
 trans = transforms.ToPILImage()
 trans1 = transforms.ToTensor()
@@ -175,14 +167,13 @@ print("Val set:", len(val_set))
 print("Test set", len(test_set))
 
 
-import pdb; pdb.set_trace()
+#import pdb; pdb.set_trace()
 
 
 dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 images, labels = next(iter(dataloader))
-"""
-"""
+
+
 plt.figure()
 plt.imshow(trans(images[0]))
 plt.show()
-"""
