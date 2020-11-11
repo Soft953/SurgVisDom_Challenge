@@ -109,20 +109,19 @@ class SurgVisTestset:
         
         return frames
 
-    # Path('C:\\Users\\gbour\\Desktop\\sysvision\\test')
     def _load_frames(self, vid_index, frame_batch):
         vid_path = self.path.joinpath(self.metadata.vid_name.iloc[vid_index] + '.mp4')
         return self._extract_frames_from_videos(vid_path, frame_batch)
 
-    def _preprocess_frame(self, img):
-        #Apply transformation (Conversion, Data augmentation, ...)
-        return self.transform(img)
-
     def get_batches(self, vid_index, indexes):
+        #print(indexes)
         frames = self._load_frames(vid_index, indexes)
         list_of_tensors = []
         for frame in frames:
-            #print(type(frame), frame.shape, frame.size())
+            if frame is None:
+                # Skip the last frame
+                continue
+            #print(type(frame), frame.shape)
             frame_as_tensor = self.transform(frame)
             list_of_tensors.append(frame_as_tensor)
         return stack(list_of_tensors)
@@ -140,7 +139,7 @@ test_set = SurgVisTestset(path=Path('C:\\Users\\gbour\\Desktop\\sysvision\\test'
 batches = test_set.get_batches(0, list(range(32)))
 print(batches.shape)
 
-"""
+
 import matplotlib.pyplot as plt
 
 PATH = 'C:\\Users\\gbour\\Desktop\\sysvision\\train_1'
@@ -153,6 +152,7 @@ train_transform = transforms.Compose([transforms.CenterCrop(CROP_SIZE),
                                         transforms.ToTensor()])
 
 dataset = SurgVisDataset(PATH_PORCINE_1, transform=train_transform, verbose=True)
+"""
 #img, y = dataset.__getitem__(0)
 trans = transforms.ToPILImage()
 trans1 = transforms.ToTensor()
