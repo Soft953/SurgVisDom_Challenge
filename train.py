@@ -10,13 +10,24 @@ from torch.optim.lr_scheduler import MultiStepLR
 from torchvision import transforms
 from torch.utils.data import DataLoader, random_split
 
+from sklearn.utils.class_weight import compute_class_weight
+
 from data_loader import SurgVisDataset
 from model import Net
 
 
 def train(trainloader, val_loader, model, dev, config):
     #define optimizer and loss function
-    criterion = nn.CrossEntropyLoss()
+    classes_weights = None
+    if config.use_classes_weights:
+        # Becareful Dataset != Subset
+        classes_weights = compute_class_weight('balanced',
+                                               np.unique(trainloader.dataset.dataset.y),
+                                               trainloader.dataset.dataset.y)
+        classes_weights = torch.FloatTensor(classes_weights).to(dev)
+        print("Classes weights:", classes_weights)
+
+    criterion = nn.CrossEntropyLoss(weight=classes_weights)
     optimizer = SGD(model.parameters(), lr=config.lr, momentum=config.momentum)
     epoch_milestones = [int(config.epochs/2), int(config.epochs/2 + config.epochs/4)]
     scheduler = MultiStepLR(optimizer, milestones=epoch_milestones, gamma=0.1)
@@ -121,7 +132,7 @@ def train(trainloader, val_loader, model, dev, config):
 
 
 if __name__ == "__main__":
-    wandb.init(project="surgvisdom")
+    # wandb.init(project="surgvisdom")
 
     PATH = Path('train_1')
     PATH_PORCINE_1 = PATH.joinpath('Porcine')
@@ -136,6 +147,7 @@ if __name__ == "__main__":
     config.no_cuda = False         # disables CUDA training
     config.seed = 42               # random seed (default: 42)
     # config.log_interval = 10     # how many batches to wait before logging training status
+    config.use_classes_weights = True
     config.crop_size = (420, 630)
     config.resize_shape = (256, 256)
     config.dataset_path = PATH_PORCINE_1
@@ -173,4 +185,4 @@ if __name__ == "__main__":
     dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=8)
     dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=2)
 
-    train_history, val_history = train(dataloader_train, dataloader_val, model, dev, config)
+    # train_history, val_history = train(dataloader_train, dataloader_val, model, dev, config)
