@@ -1,6 +1,8 @@
 from pathlib import Path
 import time
 
+import numpy as np
+
 import wandb
 
 import torch
@@ -36,6 +38,7 @@ def train(trainloader, val_loader, model, dev, config):
     val_loss_history = []
 
     # training/validation loop
+    print("Start training!")
     for epoch in range(config.epochs):
         start = time.time()
         training_loss = 0.0
@@ -186,14 +189,14 @@ if __name__ == "__main__":
     if config.use_weighted_random_sampler:
         # FIX compute weights two time
         classes_weights = compute_class_weight('balanced',
-                                               np.unique(trainloader.dataset.dataset.y),
-                                               trainloader.dataset.dataset.y)
+                                               np.unique(train_set.dataset.y),
+                                               train_set.dataset.y)
         classes_weights = torch.FloatTensor(classes_weights).to(dev)
         print("Classes weights:", classes_weights)
 
         sampler = WeightedRandomSampler(classes_weights, len(classes_weights))
 
-        dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=8, sampler=sampler)
+        dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=False, num_workers=8, sampler=sampler)
         dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=2, sampler=sampler)
     else:
         dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=8)
