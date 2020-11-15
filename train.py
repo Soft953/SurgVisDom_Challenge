@@ -10,7 +10,7 @@ import torch.nn as nn
 from torch.optim import SGD
 from torch.optim.lr_scheduler import MultiStepLR
 from torchvision import transforms
-from torch.utils.data import DataLoader, random_split, WeightedRandomSampler
+from torch.utils.data import DataLoader, random_split
 
 from sklearn.utils.class_weight import compute_class_weight
 
@@ -151,7 +151,6 @@ if __name__ == "__main__":
     config.seed = 42               # random seed (default: 42)
     # config.log_interval = 10     # how many batches to wait before logging training status
     config.use_classes_weights = True
-    config.use_weighted_random_sampler = True
     config.crop_size = (420, 630)
     config.resize_shape = (256, 256)
     config.dataset_path = PATH_PORCINE_1
@@ -186,20 +185,7 @@ if __name__ == "__main__":
     # Log metrics with wandb
     wandb.watch(model)
 
-    if config.use_weighted_random_sampler:
-        # FIX compute weights two time
-        classes_weights = compute_class_weight('balanced',
-                                               np.unique(train_set.dataset.y),
-                                               train_set.dataset.y)
-        classes_weights = torch.FloatTensor(classes_weights).to(dev)
-        print("Classes weights:", classes_weights)
-
-        sampler = WeightedRandomSampler(classes_weights, len(classes_weights))
-
-        dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=False, num_workers=8, sampler=sampler)
-        dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=2, sampler=sampler)
-    else:
-        dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=8)
-        dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=2)
+    dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=8)
+    dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=2)
 
     train_history, val_history = train(dataloader_train, dataloader_val, model, dev, config)
