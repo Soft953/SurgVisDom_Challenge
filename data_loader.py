@@ -119,81 +119,86 @@ class SurgVisTestset:
             list_of_tensors.append(frame_as_tensor)
         return stack(list_of_tensors)
 
-CROP_SIZE = (420, 630)
-INPUT_SHAPE = (256, 256)
-"""
-train_transform = transforms.Compose([transforms.ToPILImage(),
-                                        transforms.CenterCrop(CROP_SIZE),
-                                        transforms.Resize(INPUT_SHAPE),
-                                        transforms.ToTensor()
-                                    ])
 
-test_set = SurgVisTestset(path=Path('C:\\Users\\gbour\\Desktop\\sysvision\\test'), transform=train_transform, verbose=True)
-batches = test_set.get_batches(0, list(range(32)))
-print(batches.shape)
+if __name__ == "__main__":
+    CROP_SIZE = (420, 630)
+    INPUT_SHAPE = (256, 256)
+    """
+    train_transform = transforms.Compose([transforms.ToPILImage(),
+                                            transforms.CenterCrop(CROP_SIZE),
+                                            transforms.Resize(INPUT_SHAPE),
+                                            transforms.ToTensor()
+                                        ])
 
-"""
-import matplotlib.pyplot as plt
+    test_set = SurgVisTestset(path=Path('C:\\Users\\gbour\\Desktop\\sysvision\\test'), transform=train_transform, verbose=True)
+    batches = test_set.get_batches(0, list(range(32)))
+    print(batches.shape)
 
-PATH = 'C:\\Users\\gbour\\Desktop\\sysvision\\train_1'
-PATH_PORCINE_1 = os.path.join(PATH, 'Porcine')
+    """
+    import matplotlib.pyplot as plt
 
-
-
-train_transform = transforms.Compose([transforms.CenterCrop(CROP_SIZE),
-                                        transforms.Resize(INPUT_SHAPE),
-                                        transforms.ToTensor()])
-
-dataset = SurgVisDataset(PATH_PORCINE_1, transform=train_transform, verbose=False)
-#img, y = dataset.__getitem__(0)
-trans = transforms.ToPILImage()
-trans1 = transforms.ToTensor()
-
-dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
-images, labels = next(iter(dataloader))
+    PATH = 'C:\\Users\\gbour\\Desktop\\sysvision\\train_1'
+    PATH_PORCINE_1 = os.path.join(PATH, 'Porcine')
 
 
 
-n = len(dataset)
-n_train = int(n * 0.9)
-n_val = int(n * 0.1)
-print("dataset len:", n)
+    train_transform = transforms.Compose([transforms.CenterCrop(CROP_SIZE),
+                                            transforms.Resize(INPUT_SHAPE),
+                                            transforms.ToTensor()])
 
+    dataset = SurgVisDataset(PATH_PORCINE_1, transform=train_transform, verbose=False)
+    #img, y = dataset.__getitem__(0)
+    trans = transforms.ToPILImage()
+    trans1 = transforms.ToTensor()
 
-train_set, val_set, test_set = random_split(dataset, (n_train, n_val, 0))
-
-print("Train set:", len(train_set))
-print("Val set:", len(val_set))
-print("Test set", len(test_set))
-
-
-#import pdb; pdb.set_trace()
-
-"""
-
-import time
-
-dataloader = DataLoader(val_set, batch_size=32, shuffle=True)
-
-start = time.time()
-for i, data in enumerate(dataloader, 0):
-    print(i)
-    inputs, labels = data
-end = time.time()
-print("time elapsed (in sec):", end - start)
-
-
-dataloader = DataLoader(val_set, batch_size=32, shuffle=True, num_workers=8)
-
-start = time.time()
-for i, data in enumerate(dataloader, 0):
-    print(i)
-    inputs, labels = data
-end = time.time()
-print("time elapsed (in sec):", end - start)
+    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+    images, labels = next(iter(dataloader))
 
 
 
+    n = len(dataset)
+    n_train = int(n * 0.9)
+    n_val = int(n * 0.1)
+    print("dataset len:", n)
 
-images, labels = next(iter(dataloader))
-"""
+
+    train_set, val_set, test_set = random_split(dataset, (n_train, n_val, 0))
+
+    print("Train set:", len(train_set))
+    print("Val set:", len(val_set))
+    print("Test set", len(test_set))
+
+    dataloader = DataLoader(val_set, batch_size=32, shuffle=False)
+
+    images, next(dataloader)
+
+    #import pdb; pdb.set_trace()
+
+    """
+
+    import time
+
+    dataloader = DataLoader(val_set, batch_size=32, shuffle=True)
+
+    start = time.time()
+    for i, data in enumerate(dataloader, 0):
+        print(i)
+        inputs, labels = data
+    end = time.time()
+    print("time elapsed (in sec):", end - start)
+
+
+    dataloader = DataLoader(val_set, batch_size=32, shuffle=True, num_workers=8)
+
+    start = time.time()
+    for i, data in enumerate(dataloader, 0):
+        print(i)
+        inputs, labels = data
+    end = time.time()
+    print("time elapsed (in sec):", end - start)
+
+
+
+
+    images, labels = next(iter(dataloader))
+    """

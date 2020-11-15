@@ -1,62 +1,103 @@
 import os
 import time
 from pathlib import Path
+
+import wandb
+
 import numpy as np
 import pandas as pd
 import cv2
 import torch
 from torch import load
 from torchvision import transforms
+from torch.utils.data import DataLoader, random_split
 
 from model import Net
-from data_loader import SurgVisTestset
+from data_loader import SurgVisDataset
 
-def evaluate(testsetloader, net, batch_size):
-    #define optimizer and loss function
-    #criterion = nn.CrossEntropyLoss()
-
-    model.eval() # Set model to evaluate mode
-
+def evaluate(testloader, model, dev):
+    
+    ground_truth = []
     predictions = []
-
+    
+    model.eval()
     with torch.no_grad():
-        #evaluation loop
-        for i in range(len(testsetloader.X)):  # loop over each video
+        for i, data in enumerate(testloader):
+            inputs, labels = data
+            inputs, labels = inputs.to(dev), labels.to(dev)
 
-            print('Video number:', i, end="")
-            start = time.time()
-            for j in range(0, testsetloader.metadata.total_num_frames.iloc[i], batch_size):
-                images = testsetloader.get_batches(i, list(range(j, j+batch_size)))
-                outputs = net(images)
-                _, predicted = torch.max(outputs, 1)
-                #c = (predicted == labels).squeeze()
-                #for i in range(4):
-                #    label = labels[i]
-                #    class_correct[label] += c[i].item()
-                #    class_total[label] += 1
-                predictions += predicted
-            end = time.time()
-            print(" -- time elapsed (in sec):", end - start)
-            break
+            # Get outputs
+            outputs = model(inputs)
+            # Get predictions
+            #pred = outputs.max(1, keepdim=True)[1]
+            
+            ground_truth += labels.tolist()
+            predictions += outputs.tolist()
 
-    print('Finished evaluation')
-    return predictions
-
+    return ground_truth, predictions
 
 if __name__ == "__main__":
-    BATCH_SIZE = 32
-    CROP_SIZE = (420, 630)
-    INPUT_SHAPE = (256, 256)
+    wandb.init(project="surgvisdom")
 
-    train_transform = transforms.Compose([transforms.ToPILImage(),
-                                            transforms.CenterCrop(CROP_SIZE),
-                                            transforms.Resize(INPUT_SHAPE),
+    PATH = Path('train_1')
+    PATH_PORCINE_1 = PATH.joinpath('Porcine')
+
+    # WandB – Config is a variable that holds and saves hyperparameters and inputs
+    config = wandb.config          # Initialize config
+    config.batch_size = 128        # input batch size for training (default: 64)
+    # config.test_batch_size = 10    # input batch size for testing (default: 1000)
+    config.epochs = 50             # number of epochs to train (default: 10)
+    config.lr = 0.1               # learning rate (default: 0.01)
+    config.momentum = 0.1          # SGD momentum (default: 0.5) 
+    config.no_cuda = False         # disables CUDA training
+    config.seed = 42               # random seed (default: 42)
+    # config.log_interval = 10     # how many batches to wait before logging training status
+    config.use_classes_weights = True
+    config.crop_size = (420, 630)
+    config.resize_shape = (256, 256)
+    config.dataset_path = PATH_PORCINE_1
+
+    train_transform = transforms.Compose([transforms.CenterCrop(config.crop_size),
+                                            transforms.Resize(config.resize_shape),
                                             transforms.ToTensor()])
 
-    test_set = SurgVisTestset(path=Path('C:\\Users\\gbour\\Desktop\\sysvision\\test'), transform=train_transform, verbose=False)
+    dataset = SurgVisDataset(config.dataset_path, transform=train_transform, verbose=False)
+
+    n = len(dataset)
+    n_train = int(n * 0.80)
+    n_val = int(n * 0.1)
+    n_dev_test = int(n * 0.1)
+    print("dataset len:", n)
+
+    # Always split using the same seed
+    torch.manual_seed(config.seed)
+    train_set, val_set, dev_test_set = random_split(dataset, (n_train, n_val, n_dev_test))
+    torch.manual_seed(torch.initial_seed())
+
+    print("Train set:", len(train_set))
+    print("Val set:", len(val_set))
+    print("Test set", len(dev_test_set))
 
     model = Net()
-    model.load_state_dict(torch.load(str(Path('C:\\Users\\gbour\\Desktop\\sysvision\\Models\\cnn_first_training.pth')), map_location=torch.device('cpu')))
+    weight_path = Path("Models/twilight-energy-35/model_epoch_18_loss_0.0000.h5")
+    model.load_state_dict(torch.load(weight_path, map_location=torch.device('cpu')))
 
-    predictions = evaluate(test_set, model, BATCH_SIZE)
-    pd.DataFrame(predictions).to_csv('test_result.csv', index=False)
+    dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    print('dev:', dev)
+    model.to(dev)
+
+    # Log metrics with wandb
+    wandb.watch(model)
+
+    #dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=8)
+    dataloader_test = DataLoader(dev_test_set, batch_size=config.batch_size, shuffle=False, num_workers=2)
+
+    ground_truth, predictions = evaluate(dataloader_test, model, dev)
+    print(len(ground_truth), len(predictions))
+    # import pdb; pdb.set_trace()
+
+    # get list of classes
+    inv_dict = {v:k for k, v in dataloader_test.dataset.dataset.classes.items()}
+    labels = [inv_dict[i] for i in range(len(inv_dict.keys()))]
+    wandb.log({"pr_curve" : wandb.plot.pr_curve(ground_truth, predictions, labels=labels),
+               "roc_curve": wandb.plot.roc_curve(ground_truth, predictions, labels=labels)})
