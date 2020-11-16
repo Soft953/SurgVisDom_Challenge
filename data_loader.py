@@ -11,11 +11,13 @@ from torchvision import transforms
 
 
 class SurgVisDataset(Dataset):
-    def __init__(self, path, transform=None, img_loader=Image.open, verbose=True):
+    def __init__(self, path, classes=None, transform=None, img_loader=Image.open, verbose=True):
         self.path = path
         self.img_loader = img_loader
-        self.classes = self._get_classes()
-
+        if classes is None:
+            self.classes = self._get_classes()
+        else:
+            self.classes = classes
         
         if transform is None:
             self.transform = transforms.Compose([transforms.ToTensor()])

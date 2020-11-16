@@ -5,8 +5,17 @@ from pathlib import Path
 import wandb
 
 import numpy as np
+
+import seaborn as sns
+
+import matplotlib.pyplot as plt
+
 import pandas as pd
+
+from sklearn import metrics
+
 import cv2
+
 import torch
 from torch import load
 from torchvision import transforms
@@ -29,15 +38,15 @@ def evaluate(testloader, model, dev):
             # Get outputs
             outputs = model(inputs)
             # Get predictions
-            #pred = outputs.max(1, keepdim=True)[1]
+            pred = outputs.max(1, keepdim=True)[1]
             
             ground_truth += labels.tolist()
-            predictions += outputs.tolist()
+            predictions += pred.t().tolist()[0]
 
     return ground_truth, predictions
 
 if __name__ == "__main__":
-    wandb.init(project="surgvisdom")
+    #wandb.init(project="surgvisdom")
 
     PATH = Path('train_1')
     PATH_PORCINE_1 = PATH.joinpath('Porcine')
@@ -61,7 +70,7 @@ if __name__ == "__main__":
                                             transforms.Resize(config.resize_shape),
                                             transforms.ToTensor()])
 
-    dataset = SurgVisDataset(config.dataset_path, transform=train_transform, verbose=False)
+    dataset = SurgVisDataset(config.dataset_path, classes={'Knot_Tying':0, 'Needle_Driving':1, 'Dissection': 2}, transform=train_transform, verbose=False)
 
     n = len(dataset)
     n_train = int(n * 0.80)
@@ -79,7 +88,7 @@ if __name__ == "__main__":
     print("Test set", len(dev_test_set))
 
     model = Net()
-    weight_path = Path("Models/twilight-energy-35/model_epoch_18_loss_0.0000.h5")
+    weight_path = Path("Models/balmy-lion-10/model_epoch_13_loss_0.0481.h5")
     model.load_state_dict(torch.load(weight_path, map_location=torch.device('cpu')))
 
     dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -87,17 +96,34 @@ if __name__ == "__main__":
     model.to(dev)
 
     # Log metrics with wandb
-    wandb.watch(model)
+    #wandb.watch(model)
 
     #dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=8)
     dataloader_test = DataLoader(dev_test_set, batch_size=config.batch_size, shuffle=False, num_workers=2)
 
     ground_truth, predictions = evaluate(dataloader_test, model, dev)
     print(len(ground_truth), len(predictions))
-    # import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
 
     # get list of classes
     inv_dict = {v:k for k, v in dataloader_test.dataset.dataset.classes.items()}
     labels = [inv_dict[i] for i in range(len(inv_dict.keys()))]
-    wandb.log({"pr_curve" : wandb.plot.pr_curve(ground_truth, predictions, labels=labels),
-               "roc_curve": wandb.plot.roc_curve(ground_truth, predictions, labels=labels)})
+
+    print(metrics.classification_report(ground_truth, predictions, target_names=labels))
+
+    ax= plt.subplot()
+    sns.heatmap(metrics.confusion_matrix(ground_truth, predictions), annot=True, ax=ax)
+
+    # labels, title and ticks
+    ax.set_xlabel('Predicted labels')
+    ax.set_ylabel('True labels') 
+    ax.set_title('Confusion Matrix')
+    ax.xaxis.set_ticklabels(labels)
+    ax.yaxis.set_ticklabels(labels)
+
+    plt.show()
+
+
+    #confusion_matrix_graph = confusion_matrix(y_test, predictions)
+    #wandb.log({"pr_curve" : wandb.plot.pr_curve(ground_truth, predictions, labels=labels),
+    #           "roc_curve": wandb.plot.roc_curve(ground_truth, predictions, labels=labels)})
